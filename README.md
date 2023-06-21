@@ -1,11 +1,15 @@
 # AniVoiceChanger
 
-An "extension" for Retrieval-based Voice Conversion WebUI. Provides a way to record your voice, convert it using an already trained voice model, and output it in voice-chat of any application without running the webui.
+An "extension" for Retrieval-based Voice Conversion WebUI. Provides a way to record your voice, convert it using a trained voice model, and output it in voice-chat of any application without running the webui.
 
 
 ## Setup
 
 ### Prerequisites
+
+#### Install Git
+
+Follow the instructions [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) to install Git on your computer.
 
 #### Install 7-Zip
 
@@ -22,7 +26,7 @@ This is used to pipe the converted voice audio into the audio input of apps.
 
 ### Install RVC WebUI
 
-If you haven't installed the RVC WebUI, download the RVC-beta.7z file from [here](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/RVC-beta.7z) and extract it using 7-Zip into a folder of your choosing.
+If you haven't installed the RVC WebUI, download the RVC-beta.7z file from [here](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/RVC-beta.7z) and extract it using 7-Zip into a folder of your choosing. It will take around 8GB of space, not including any voice models that you may train later on.
 
 
 ### Clone AniVoiceChanger repository
@@ -53,11 +57,17 @@ To start the program, open a command line window in the extracted RVC-beta folde
 
 ```runtime\python.exe AniVoiceChanger\main_local.py```
 
-Now, hold the RECORD_KEY as defined in your .env file on your keyboard and speak into your mic. For the first time, this might take around 5 seconds to generate and play the voice. For consecutive uses, the time taken will be drastically reduced with caching. Do note that the voice is played into the Cable Output audio device, so if you want to hear it yourself, you may need to use OBS/Audacity to monitor and playback the voice to your speakers. The generated voice will also be written into [this folder](audio/) as `output.wav` file.
+Now, hold the RECORD_KEY as defined in your .env file on your keyboard and speak into your mic. For the first time, this might take around 5 seconds to generate and play the voice. For consecutive uses, the time taken will be drastically reduced with caching. The voice will be played into the Cable Output audio device and your speakers as defined in the `.env` file. The generated voice will also be written into [this folder](audio/) as `output.wav` file.
 
 ### Google Colab
 
-(TODO)
+Go to [AniVoiceChanger_colab.ipynb](AniVoiceChanger_colab.ipynb) file in Github and click on `Open in Colab` badge. This will open a Colab notebook. Follow the instructions in the notebook to either train a voice model, or run the RVC Inference server.
+
+If you have already uploaded a trained voice model to the Colab runtime and it has started running the inference server, the output of the last cell should display a Ngrok public url. Copy and paste this url into the `COLAB_URL` environment variable in your `.env` file. After all your environment variables are properly set, open a command line window in the extracted RVC-beta folder (Should have a bunch of folders and files) and run this command.
+
+```runtime\python.exe AniVoiceChanger\main_colab.py```
+
+Now, hold the RECORD_KEY as defined in your .env file on your keyboard and speak into your mic. For the first time, this might take around 10 seconds to generate and play the voice. For consecutive uses, the time taken will be drastically reduced with caching. The voice will be played into the Cable Output audio device and your speakers as defined in the `.env` file. The generated voice will also be written into [this folder](audio/) as `output.wav` file.
 
 ## Terms of Use
 
@@ -73,7 +83,7 @@ The use of the converted voice for the following purposes is prohibited.
 
 * Impersonation of the original owner of the voice with malicious intentions to harm/hurt others.
 
-* Fraudulent purposes that lead to identity theft, fraudulent phone calls and phishing emails.
+* Fraudulent purposes that lead to identity theft or fraudulent phone calls.
 
 ## Disclaimer
 
