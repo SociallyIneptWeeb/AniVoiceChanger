@@ -1,5 +1,4 @@
 keyboard
 pyaudio
-sounddevice
-soundfile
 python-dotenv
+requests

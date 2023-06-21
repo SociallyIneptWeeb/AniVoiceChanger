@@ -1,10 +1,11 @@
 import sys
 import wave
 from pathlib import Path
-from time import sleep
+from time import sleep, time
 from os import getenv
 
 import keyboard
+from threading import Thread
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.append(str(BASE_DIR))
@@ -30,18 +31,18 @@ from scipy.io import wavfile
 
 # load environment variables
 load_dotenv()
-CHAR_VOICE = getenv('CHAR_VOICE')
+MODEL_NAME = getenv('MODEL_NAME')
+if MODEL_NAME.endswith('.pth'):
+    MODEL_NAME = MODEL_NAME[:-4]
 PITCH_CHANGE = int(getenv('PITCH_CHANGE'))
-OUTPUT_VOLUME = float(getenv('OUTPUT_VOLUME'))
-if CHAR_VOICE.endswith('.pth'):
-    CHAR_VOICE = CHAR_VOICE[:-4]
-
-INDEX_FILENAME = getenv('INDEX_FILENAME')
+VOLUME_ENVELOPE = float(getenv('VOLUME_ENVELOPE'))
 INDEX_RATE = float(getenv('INDEX_RATE')) if getenv('INDEX_RATE') else 0
 PITCH_EXTRACTION_ALGO = getenv('PITCH_EXTRACTION_ALGO')
 GPU_INDEX = getenv('GPU_INDEX')
-RECORD_KEY = getenv('RECORD_KEY')
-MIC_NAME = getenv('MIC_NAME') if getenv('MIC_NAME') else 'Microphone'
+MIC_RECORD_KEY = getenv('MIC_RECORD_KEY')
+INGAME_PUSH_TO_TALK_KEY = getenv('INGAME_PUSH_TO_TALK_KEY')
+MICROPHONE_ID = int(getenv('MICROPHONE_ID'))
+SPEAKERS_INPUT_ID = int(getenv('SPEAKERS_INPUT_ID'))
 
 
 class Config:
@@ -137,7 +138,12 @@ def load_hubert():
 
 
 def get_vc():
-    model_path = str(BASE_DIR / 'weights' / f'{CHAR_VOICE}.pth')
+    model_path = BASE_DIR / 'weights' / f'{MODEL_NAME}.pth'
+    if not model_path.exists():
+        print(f'The model {model_path} does not exist. Please ensure that you have filled in the proper MODEL_NAME in your .env file.')
+        raise Exception()
+
+    model_path = str(model_path)
     print(f'loading pth {model_path}')
     cpt = torch.load(model_path, map_location='cpu')
     tgt_sr = cpt["config"][-1]
@@ -170,19 +176,32 @@ def get_vc():
 
 
 def rvc_infer():
-    # index file not needed if training data quality is good
-    if INDEX_FILENAME:
-        index_path = str(BASE_DIR / 'logs' / CHAR_VOICE / INDEX_FILENAME)
-    else:
-        index_path = ''
-
+    logs_dir = BASE_DIR / 'logs' / MODEL_NAME
+    index_path = ''
+    for file in logs_dir.iterdir():
+        if file.suffix == '.index':
+            index_path = str(logs_dir / file.name)
+            break
+    
     # vc single
     audio = load_audio(INPUT_VOICE_PATH, 16000)
     times = [0, 0, 0]
     if_f0 = cpt.get('f0', 1)
-    audio_opt = vc.pipeline(hubert_model, net_g, 0, audio, INPUT_VOICE_PATH, times, PITCH_CHANGE, PITCH_EXTRACTION_ALGO, index_path, INDEX_RATE, if_f0, 3, tgt_sr, 0, OUTPUT_VOLUME, version, 0.33, f0_file=None)
-    print(f'Time taken for RVC voice conversion: {times[0] + times[1] + times[2]}s')
+    audio_opt = vc.pipeline(hubert_model, net_g, 0, audio, INPUT_VOICE_PATH, times, PITCH_CHANGE, PITCH_EXTRACTION_ALGO, index_path, INDEX_RATE, if_f0, 3, tgt_sr, 0, VOLUME_ENVELOPE, version, 0.33, f0_file=None)
     wavfile.write(OUTPUT_VOICE_PATH, tgt_sr, audio_opt)
+
+
+def play_voice(device_id):
+    data, fs = sf.read(OUTPUT_VOICE_PATH, dtype='float32')
+
+    if INGAME_PUSH_TO_TALK_KEY:
+        keyboard.press(INGAME_PUSH_TO_TALK_KEY)
+
+    sd.play(data, fs, device=device_id)
+    sd.wait()
+
+    if INGAME_PUSH_TO_TALK_KEY:
+        keyboard.release(INGAME_PUSH_TO_TALK_KEY)
 
 
 def on_press_key(_):
@@ -195,7 +214,7 @@ def on_press_key(_):
                         rate=MIC_SAMPLING_RATE,
                         input=True,
                         frames_per_buffer=CHUNK,
-                        input_device_index=MIC_ID)
+                        input_device_index=MICROPHONE_ID)
 
 
 def on_release_key(_):
@@ -205,11 +224,12 @@ def on_release_key(_):
     stream.close()
     stream = None
 
-    # if empty audio file
-    if not frames or len(frames) < 30:
-        print('No audio file to transcribe detected.')
+    # if key not held down for long enough
+    if not frames or len(frames) < 20:
+        print('No audio file to transcribe detected. Hold down the key for a longer time.')
         return
 
+    start_time = time()
     # write microphone audio to file
     wf = wave.open(str(INPUT_VOICE_PATH), 'wb')
     wf.setnchannels(MIC_CHANNELS)
@@ -220,9 +240,12 @@ def on_release_key(_):
 
     # voice change
     rvc_infer()
-    data, fs = sf.read(OUTPUT_VOICE_PATH, dtype='float32')
-    sd.play(data, fs, device=CABLE_INPUT_ID)
-    sd.wait()
+    print(f'Time taken for RVC voice conversion: {time() - start_time}s')
+
+    # play to both app mic input and speakers
+    threads = [Thread(target=play_voice, args=[CABLE_INPUT_ID]), Thread(target=play_voice, args=[SPEAKERS_INPUT_ID])]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
 
 
 if __name__ == '__main__':
@@ -236,29 +259,18 @@ if __name__ == '__main__':
 
     p = pyaudio.PyAudio()
 
-    audio_device_count = 0
-    MIC_ID, CABLE_INPUT_ID = None, None
+    CABLE_INPUT_ID = None
     for audio_device in sd.query_devices():
-        if audio_device_count == 2:
-            break
-
-        if MIC_NAME in audio_device['name']:
-            MIC_ID = audio_device['index']
-            audio_device_count += 1
-
         if 'CABLE Input' in audio_device['name']:
             CABLE_INPUT_ID = audio_device['index']
-            audio_device_count += 1
-
-    if not MIC_ID:
-        print('Microphone was not found, please fill in MIC_NAME in the .env file.')
-        sys.exit()
+            break
 
     if not CABLE_INPUT_ID:
         print('Virtual audio cable was not found. Please download and install it.')
+        sys.exit()
 
     # get channels and sampling rate of mic
-    mic_info = p.get_device_info_by_index(MIC_ID)
+    mic_info = p.get_device_info_by_index(MICROPHONE_ID)
     MIC_CHANNELS = mic_info['maxInputChannels']
     MIC_SAMPLING_RATE = 40000
 
@@ -272,8 +284,8 @@ if __name__ == '__main__':
     recording = False
     stream = None
 
-    keyboard.on_press_key(RECORD_KEY, on_press_key)
-    keyboard.on_release_key(RECORD_KEY, on_release_key)
+    keyboard.on_press_key(MIC_RECORD_KEY, on_press_key)
+    keyboard.on_release_key(MIC_RECORD_KEY, on_release_key)
 
     try:
         print('Starting voice changer.')
@@ -282,7 +294,7 @@ if __name__ == '__main__':
                 data = stream.read(CHUNK)
                 frames.append(data)
             else:
-                sleep(0.5)
+                sleep(0.2)
 
     except KeyboardInterrupt:
         print('Closing voice changer.')
