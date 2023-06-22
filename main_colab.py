@@ -31,8 +31,8 @@ PITCH_EXTRACTION_ALGO = getenv('PITCH_EXTRACTION_ALGO')
 GPU_INDEX = getenv('GPU_INDEX')
 MIC_RECORD_KEY = getenv('MIC_RECORD_KEY')
 INGAME_PUSH_TO_TALK_KEY = getenv('INGAME_PUSH_TO_TALK_KEY')
-MICROPHONE_ID = int(getenv('MICROPHONE_ID'))
-SPEAKERS_INPUT_ID = int(getenv('SPEAKERS_INPUT_ID'))
+MICROPHONE_ID = int(getenv('MICROPHONE_ID')) if getenv('MICROPHONE_ID') else None
+SPEAKERS_INPUT_ID = int(getenv('SPEAKERS_INPUT_ID')) if getenv('SPEAKERS_INPUT_ID') else None
 
 
 def rvc_infer_colab():
@@ -110,6 +110,11 @@ if __name__ == '__main__':
     FORMAT = pyaudio.paInt16
 
     p = pyaudio.PyAudio()
+    if MICROPHONE_ID is None:
+        MICROPHONE_ID = p.get_default_input_device_info()['index']
+
+    if SPEAKERS_INPUT_ID is None:
+        SPEAKERS_INPUT_ID = p.get_default_output_device_info()['index']
 
     CABLE_INPUT_ID = None
     for audio_device in sd.query_devices():
