@@ -207,6 +207,7 @@ def play_voice(device_id):
 def on_press_key(_):
     global frames, recording, stream
     if not recording:
+        print('\nRecording has started.')
         frames = []
         recording = True
         stream = p.open(format=FORMAT,
@@ -228,6 +229,8 @@ def on_release_key(_):
     if not frames or len(frames) < 20:
         print('No audio file to transcribe detected. Hold down the key for a longer time.')
         return
+    
+    print('Converting voice...')
 
     start_time = time()
     # write microphone audio to file
@@ -279,6 +282,8 @@ if __name__ == '__main__':
     MIC_CHANNELS = mic_info['maxInputChannels']
     MIC_SAMPLING_RATE = 40000
 
+    print('Voice changer is booting up...')
+
     # load hubert model
     hubert_model = load_hubert()
 
@@ -293,7 +298,7 @@ if __name__ == '__main__':
     keyboard.on_release_key(MIC_RECORD_KEY, on_release_key)
 
     try:
-        print('Starting voice changer.')
+        print('Voice changer is ready.')
         while True:
             if recording and stream:
                 data = stream.read(CHUNK)
@@ -302,4 +307,4 @@ if __name__ == '__main__':
                 sleep(0.2)
 
     except KeyboardInterrupt:
-        print('Closing voice changer.')
+        print('Closing voice changer...')
