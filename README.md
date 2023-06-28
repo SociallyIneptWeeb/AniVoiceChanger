@@ -5,6 +5,7 @@
 An "extension" for Retrieval-based Voice Conversion WebUI. Provides a way to record your voice, convert it using a trained voice model, and output it in voice-chat of any application without running the webui.
 
 Showcase: https://www.youtube.com/watch?v=C-PqTbh0LxY
+
 Setup Guide: https://www.youtube.com/watch?v=K4vVW7iA1w8
 
 ## Setup
