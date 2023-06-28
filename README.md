@@ -5,6 +5,7 @@
 An "extension" for Retrieval-based Voice Conversion WebUI. Provides a way to record your voice, convert it using a trained voice model, and output it in voice-chat of any application without running the webui.
 
 Showcase: https://www.youtube.com/watch?v=C-PqTbh0LxY
+Setup Guide: https://www.youtube.com/watch?v=K4vVW7iA1w8
 
 ## Setup
 
@@ -43,12 +44,12 @@ runtime\python.exe -m pip install -r AniVoiceChanger\extra_requirements.txt
 
 ### Filling in your Environment Variables in the .env file
 
-Follow the instructions written in the .env file and fill in the appropriate values. If unsure, please refer to this section of the setup video.
+Follow the instructions written in the .env file and fill in the appropriate values. If unsure, please refer to [this section](https://www.youtube.com/watch?v=K4vVW7iA1w8&t=728s) of the setup video.
 
 
 ## Usage
 
-This program assumes that you have already trained a voice model, with the model file in the weights folder. If you have not done so, please refer to this section of the setup video.
+This program assumes that you have already trained a voice model, with the model file in the weights folder. If you have not done so, please refer to [this section](https://www.youtube.com/watch?v=K4vVW7iA1w8&t=457s) of the setup video.
 
 Remember to change the audio input device of the game or application you are using to Cable Output (VB-Audio Virtual Cable).
 
