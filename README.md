@@ -40,7 +40,7 @@ Within the extracted RVC-beta folder (Should have a bunch of folders and files),
 
 ```
 git clone https://github.com/SociallyIneptWeeb/AniVoiceChanger
-runtime\python.exe -m pip install -r AniVoiceChanger\extra_requirements.txt
+python -m pip install -r AniVoiceChanger\extra_requirements.txt
 ```
 
 ### Filling in your Environment Variables in the .env file
